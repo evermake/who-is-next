@@ -1,7 +1,7 @@
 from typing import List, Optional
 
-from sqlalchemy import UniqueConstraint, BigInteger
-from sqlmodel import Field, Relationship, SQLModel, Column
+from sqlalchemy import BigInteger, UniqueConstraint
+from sqlmodel import Column, Field, Relationship, SQLModel
 
 
 class User(SQLModel, table=True):
