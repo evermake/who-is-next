@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "who-is-next"
+version = "0.1.0"
+description = "Telegram bot that keeps track of whose turn it is. 😑"
+authors = ["evermake <vladeryabkin@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+python-telegram-bot = "^13.11"
+sqlmodel = "^0.0.6"
+psycopg2 = "^2.9.3"
+
+[tool.poetry.dev-dependencies]
+black = "^22.1.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 79
