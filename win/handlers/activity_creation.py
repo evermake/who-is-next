@@ -4,7 +4,13 @@ from enum import IntEnum
 from typing import Union
 
 from sqlmodel import select
-from telegram import ParseMode, ReplyKeyboardMarkup, Update
+from telegram import (
+    ParseMode,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    ReplyMarkup,
+    Update,
+)
 from telegram.ext import (
     CallbackContext,
     CommandHandler,
@@ -35,6 +41,7 @@ random_name_markup = ReplyKeyboardMarkup(
     [[RANDOM_ACTIVITY_NAME_MESSAGE]],
     one_time_keyboard=True,
     resize_keyboard=True,
+    selective=True,
 )
 
 
@@ -70,7 +77,7 @@ def validate_activity_name(name: str, chat_id: int) -> Union[str, bool]:
 
 def cancel(update: Update, context: CallbackContext) -> int:
     del context.chat_data["activity"]
-    update.message.reply_text("Canceled.")
+    update.message.reply_text("Canceled.", reply_markup=ReplyKeyboardRemove())
     return ConversationState.END
 
 
@@ -131,6 +138,7 @@ def add_participant_by_sender(update: Update, context: CallbackContext) -> int:
         context=context,
         participant=participant,
         already_exists_error_msg="%(name)s, you are already added!",
+        reply_markup=ReplyKeyboardRemove(True),
     )
 
 
@@ -140,16 +148,22 @@ def add_participant(
     participant: Participant,
     already_exists_error_msg: str,
     success_msg: str = "%(name)s, okay. Anyone else?",
+    reply_markup: ReplyMarkup = None,
 ):
     activity: Activity = context.chat_data["activity"]
+
     if participant in activity.participants:
         update.message.reply_text(
-            already_exists_error_msg % {"name": participant.name}
+            already_exists_error_msg % {"name": participant.name},
+            reply_markup=reply_markup,
         )
         return ConversationState.ADDING_PARTICIPANT
 
     activity.participants.append(participant)
-    update.message.reply_text(success_msg % {"name": participant.name})
+    update.message.reply_text(
+        success_msg % {"name": participant.name},
+        reply_markup=reply_markup,
+    )
     return ConversationState.ADDING_PARTICIPANT
 
 
@@ -159,6 +173,7 @@ def show_preview(update: Update, context: CallbackContext):
         get_activity_preview_html(activity)
         + "\n\nType /confirm to save an activity",
         parse_mode=ParseMode.HTML,
+        reply_markup=ReplyKeyboardRemove(),
     )
     return ConversationState.CONFIRMING
 
@@ -169,7 +184,9 @@ def confirm(update: Update, context: CallbackContext):
     with get_session() as session:
         session.add(activity)
         session.commit()
-        update.message.reply_text("✅ Activity saved.")
+        update.message.reply_text(
+            "✅ Activity saved.", reply_markup=ReplyKeyboardRemove()
+        )
         return ConversationState.END
 
 
@@ -180,8 +197,7 @@ activity_creation_conversation = ConversationHandler(
     entry_points=[CommandHandler("create", start)],
     states={
         ConversationState.CHOOSING_NAME: [
-            CommandHandler("cancel", cancel),
-            MessageHandler(Filters.text, choose_name),
+            MessageHandler(Filters.text & (~Filters.command), choose_name),
         ],
         ConversationState.ADDING_PARTICIPANT: [
             CommandHandler("preview", show_preview),
